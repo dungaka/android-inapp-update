@@ -1,13 +1,13 @@
 apply plugin: 'com.android.library'
-
-version = '1.2'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 android {
-    compileSdkVersion 34
+    compileSdk 34
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 21
         targetSdkVersion 34
         versionCode 1
         versionName "1.0.0"
@@ -29,15 +29,77 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation 'androidx.core:core:1.13.1'
-    implementation 'androidx.annotation:annotation:1.3.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime:2.3.1'
+    implementation 'androidx.annotation:annotation:1.8.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.8.2'
     //noinspection LifecycleAnnotationProcessorWithJava8
-    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.3.1'
-    implementation 'com.google.android.material:material:1.8.0'
+    annotationProcessor 'androidx.lifecycle:lifecycle-compiler:2.8.2'
+    implementation 'com.google.android.material:material:1.12.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test:runner:1.5.2'
 }
 
-apply from: "${rootDir}/gradle/bintray.gradle"
+tasks.register('androidSourcesJar', Jar) {
+    archiveClassifier.set('sources')
+    from android.sourceSets.main.java.srcDirs
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from components.findByName('release')
+
+                artifact androidSourcesJar
+
+                groupId = 'eu.dkaratzas'
+                artifactId = 'android-inapp-update'
+                version = '1.5.1'
+
+                pom {
+                    name = 'Android In-App Update'
+                    description = 'An implementation of Android In-app Update'
+                    url = 'https://github.com/dnKaratzas/android-inapp-update'
+                    packaging = 'aar'
+                    licenses {
+                        license {
+                            name = 'The Apache Software License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                            distribution = 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'DungAKA'
+                            name = 'DungAKA'
+                            email = 'dungaka@gmail.com'
+                        }
+                    }
+                    scm {
+                        url = 'scm:git@github.com:dungaka/android-inapp-update.git'
+                        connection = 'scm:git@github.com:dungaka/android-inapp-update.git'
+                        developerConnection = 'scm:git@github.com:dungaka/android-inapp-update.git'
+                    }
+                }
+            }
+        }
+        if (project.hasProperty('sonatypeRepo')) {
+            repositories {
+                maven {
+                    url sonatypeRepo
+                    credentials {
+                        username sonatypeUsername
+                        password sonatypePassword
+                    }
+                }
+            }
+        }
+    }
+
+    signing {
+        required { gradle.taskGraph.hasTask("publish") }
+        sign publishing.publications.maven
+    }
+}
+
 
 
